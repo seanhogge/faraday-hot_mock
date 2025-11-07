@@ -1,0 +1,7 @@
+- url_pattern: dog.ceo.*/random
+  method: GET
+  status: 404
+  headers:
+    Content-Type: application/json
+  body:
+    error: "Service Unavailable"
