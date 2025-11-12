@@ -1,8 +1,10 @@
 # Faraday::HotMock
 
-When using Faraday to develop an API integration, it can be challenging to simulate errors from the API if they don't provide a mechanism for doing so.
+When using Faraday with Rails to develop an API integration, it can be challenging to simulate errors from the API if they don't provide a mechanism for doing so.
 
 This adapter attempts to make that simpler by parsing YAML files at runtime. If a match exists in any YAML file in the proper location, that response is returned. If no match exists, a real call is made.
+
+_**This adapter is meant for usage in Rails, not with Faraday in other frameworks or situations.**_
 
 
 ## Usage
