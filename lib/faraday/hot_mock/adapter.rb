@@ -6,37 +6,29 @@ require "faraday"
 
 module Faraday
   module HotMock
-    class Middleware < Faraday::Middleware
+    class Adapter < Faraday::Adapter
       def initialize(app, options = {})
         super(app)
         @mock_dir = options[:mock_dir] || default_mock_dir
         @enabled_file = options[:enabled_file] || "tmp/mocking-#{Rails.env}.txt"
+        fallback = options[:adapter] || Faraday.default_adapter
+        @fallback_adapter = Faraday::Adapter.lookup_middleware(fallback)
         @mocks = load_mocks
       end
 
       def call(env)
-        return @app.call(env) unless mocking_enabled?
-
-        if @mocks && (mock = find_mock(env.method, env.url))
-          env[:status] = mock["status"] || 200
-          env[:response_headers] = Faraday::Utils::Headers.new(
-            mock["headers"] || {},
-          )
-          env[:body] = mock["body"] || ""
-
-          response = Faraday::Response.new(env)
-          response.on_complete { |response_env| }
-
-          return response
+        super
+        if mocking_enabled? && @mocks && (mock = find_mock(env.method, env.url))
+          save_response(env, mock["status"] || 200, mock["body"] || "", mock["headers"] || {})
+        else
+          @fallback_adapter.new(@app, @options).call(env)
         end
-
-        @app.call(env)
       end
 
       private
 
       def load_mocks
-        return [] unless Dir.exist?(@mock_dir)
+        return [] unless Dir.exist?(Rails.root.join @mock_dir)
 
         mocks = []
 
@@ -49,7 +41,7 @@ module Faraday
       end
 
       def mocking_enabled?
-        File.exist?(@enabled_file)
+        File.exist?(Rails.root.join @enabled_file)
       end
 
       def default_mock_dir
@@ -69,7 +61,7 @@ module Faraday
       end
 
       def yaml_files
-        Dir.glob(File.join(@mock_dir, "**", "*.{yml,yaml}"))
+        Dir.glob(File.join(Rails.root.join(@mock_dir), "**", "*.{yml,yaml}"))
       end
     end
   end

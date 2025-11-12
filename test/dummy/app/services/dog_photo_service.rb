@@ -6,8 +6,7 @@ class DogPhotoService
     @conn = Faraday.new(url: "https://dog.ceo/api/") do |faraday|
       faraday.request :json
       faraday.response :json
-      faraday.response :raise_error
-      faraday.request :hot_mock
+      faraday.adapter :hot_mock
     end
   end
 end

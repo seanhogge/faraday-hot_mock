@@ -1,7 +1,56 @@
 require "test_helper"
+require "colorize"
 
 class Faraday::HotMockTest < ActiveSupport::TestCase
+  setup do
+    @stub = stub_request(:get, /dog.ceo/).to_return(status: 200, body: "{}")
+  end
+
+  teardown do
+    FileUtils.rm(Rails.root.join("tmp/mocking-test.txt")) if File.exist?(Rails.root.join("tmp/mocking-test.txt"))
+  end
+
   test "it has a version number" do
     assert Faraday::HotMock::VERSION
+  end
+
+  test "mocks are used only when the mocking file is present" do
+    assert_not File.exist?(Rails.root.join("tmp/mocking-test.txt")), "SETUP: The mocking file should not exist before the test.".black.on_yellow
+
+
+    WebMock.allow_net_connect! do
+      DogPhotoService.new.conn.get "breeds/image/random"
+      assert_requested @stub
+    end
+
+    FileUtils.touch(Rails.root.join("tmp/mocking-test.txt"))
+    assert File.exist?(Rails.root.join("tmp/mocking-test.txt")), "SETUP: The mocking file should have been successfully created.".black.on_yellow
+
+    mocked_request = DogPhotoService.new.conn.get "breeds/image/random"
+    assert mocked_request.status == 418, "Expected a mocked request to be a teapot (return status 418)".black.on_red
+  end
+
+  test "multiple files can be loaded from the mock directory" do
+    FileUtils.touch(Rails.root.join("tmp/mocking-test.txt"))
+    assert File.exist?(Rails.root.join("tmp/mocking-test.txt")), "SETUP: The mocking file should have been successfully created.".black.on_yellow
+
+    mocked_request_1 = DogPhotoService.new.conn.get "breeds/image/random"
+    assert mocked_request_1.status == 418, "Expected a mocked request to be a teapot (return status 418)".black.on_red
+
+    mocked_request_2 = DogPhotoService.new.conn.get "breeds/image/breeds/list/all"
+    assert mocked_request_2.status == 418, "Expected a mocked POST request to be a teapot (return status 418)".black.on_red
+  end
+
+  test "mocks can be filtered by HTTP method" do
+    FileUtils.touch(Rails.root.join("tmp/mocking-test.txt"))
+    assert File.exist?(Rails.root.join("tmp/mocking-test.txt")), "SETUP: The mocking file should have been successfully created.".black.on_yellow
+
+    mocked_get_request = DogPhotoService.new.conn.get "breeds/image/breeds/list/all"
+    assert mocked_get_request.status == 418, "Expected a mocked POST request to be a teapot (return status 418)".black.on_red
+
+    WebMock.allow_net_connect! do
+      DogPhotoService.new.conn.post "breeds/image/breeds/list/all"
+      assert_requested @stub
+    end
   end
 end

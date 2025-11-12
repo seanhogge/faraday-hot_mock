@@ -1,0 +1,7 @@
+- url_pattern: dog.ceo.*/breeds/list/all
+  method: GET
+  status: 418
+  headers:
+    Content-Type: application/json
+  body:
+    error: I'm a teapot

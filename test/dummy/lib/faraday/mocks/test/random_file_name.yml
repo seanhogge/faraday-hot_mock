@@ -1,7 +1,7 @@
 - url_pattern: dog.ceo.*/random
   method: GET
-  status: 503
+  status: 418
   headers:
     Content-Type: application/json
   body:
-    error: "Service Unavailable"
+    error: I'm a teapot
