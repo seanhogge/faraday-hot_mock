@@ -53,7 +53,7 @@ module Faraday
         return nil unless @mocks.any?
 
         @mocks.find do |mock|
-          url_matches = Regexp.new(mock["url_pattern"]).match?(url)
+          url_matches = Regexp.new(mock["url_pattern"]).match?(url.to_s)
           method_matches = mock["method"].nil? || mock["method"].to_s.upcase == method.to_s.upcase
 
           url_matches && method_matches
