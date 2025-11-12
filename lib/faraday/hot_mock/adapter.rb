@@ -11,7 +11,7 @@ module Faraday
         super(app)
         @mock_dir = options[:mock_dir] || default_mock_dir
         @enabled_file = options[:enabled_file] || "tmp/mocking-#{Rails.env}.txt"
-        fallback = options[:adapter] || Faraday.default_adapter
+        fallback = options[:fallback] || Faraday.default_adapter
         @fallback_adapter = Faraday::Adapter.lookup_middleware(fallback)
         @mocks = load_mocks
       end

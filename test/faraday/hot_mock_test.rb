@@ -18,10 +18,10 @@ class Faraday::HotMockTest < ActiveSupport::TestCase
     assert_not File.exist?(Rails.root.join("tmp/mocking-test.txt")), "SETUP: The mocking file should not exist before the test.".black.on_yellow
 
 
-    WebMock.allow_net_connect! do
+    # WebMock.allow_net_connect! do
       DogPhotoService.new.conn.get "breeds/image/random"
       assert_requested @stub
-    end
+    # end
 
     FileUtils.touch(Rails.root.join("tmp/mocking-test.txt"))
     assert File.exist?(Rails.root.join("tmp/mocking-test.txt")), "SETUP: The mocking file should have been successfully created.".black.on_yellow
@@ -38,7 +38,7 @@ class Faraday::HotMockTest < ActiveSupport::TestCase
     assert mocked_request_1.status == 418, "Expected a mocked request to be a teapot (return status 418)".black.on_red
 
     mocked_request_2 = DogPhotoService.new.conn.get "breeds/image/breeds/list/all"
-    assert mocked_request_2.status == 418, "Expected a mocked POST request to be a teapot (return status 418)".black.on_red
+    assert mocked_request_2.status == 418, "Expected a mocked request to be a teapot (return status 418)".black.on_red
   end
 
   test "mocks can be filtered by HTTP method" do
@@ -46,11 +46,19 @@ class Faraday::HotMockTest < ActiveSupport::TestCase
     assert File.exist?(Rails.root.join("tmp/mocking-test.txt")), "SETUP: The mocking file should have been successfully created.".black.on_yellow
 
     mocked_get_request = DogPhotoService.new.conn.get "breeds/image/breeds/list/all"
-    assert mocked_get_request.status == 418, "Expected a mocked POST request to be a teapot (return status 418)".black.on_red
+    assert mocked_get_request.status == 418, "Expected a mocked request to be a teapot (return status 418)".black.on_red
 
     WebMock.allow_net_connect! do
       DogPhotoService.new.conn.post "breeds/image/breeds/list/all"
       assert_requested @stub
     end
+  end
+
+  test "YAML files in subdirectories are used for mock matching" do
+    FileUtils.touch(Rails.root.join("tmp/mocking-test.txt"))
+    assert File.exist?(Rails.root.join("tmp/mocking-test.txt")), "SETUP: The mocking file should have been successfully created.".black.on_yellow
+
+    mocked_get_request = DogPhotoService.new.conn.get "breed/pyrenees/images"
+    assert mocked_get_request.status == 418, "Expected a mocked request to be a teapot (return status 418)".black.on_red
   end
 end
