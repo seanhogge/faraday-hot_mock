@@ -49,15 +49,17 @@ end
 
 Then add the switch: `tmp/mocking-#{Rails.env}.txt`. Just like Rails' own `tmp/caching-dev.txt` file, this will toggle HotMock on when present, and off when not present.
 
-> NOTE: ⚠️ For caching, it's `tmp/caching-dev.txt`, but for mocking it's `tmp/mocking-development.txt`
+> ⚠️ REMEMBER: For caching, it's `tmp/caching-dev.txt`, but for mocking it's `tmp/mocking-development.txt`
 
 Now, create the directory `lib/faraday/mocks/` and a subdirectory for each environment you want to hot mock. Within that directory, create whatever files and subdirectories you like.
+
+> ⚠️ REMEMBER: it's `lib/faraday/mocks`, not `app/lib/faraday/mocks`
 
 Consider adding these directories to .gitignore unless you want mocks to be shared.
 
 ```yaml
 # lib/faraday/mocks/development/vendor_name_mocks.yml
-- url_pattern: vendername.com.*/endpoint
+- url_pattern: vendorname.com.*/endpoint
   method: POST
   status: 418
   headers:
@@ -72,7 +74,7 @@ If you edit the file to be:
 
 ```yaml
 # lib/faraday/mocks/development/vendor_name_mocks.yml
-- url_pattern: vendername.com.*/endpoint
+- url_pattern: vendorname.com.*/endpoint
   method: POST
   status: 503
   headers:
