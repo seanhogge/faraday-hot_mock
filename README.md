@@ -6,6 +6,17 @@ This adapter attempts to make that simpler by parsing YAML files at runtime. If 
 
 _**This adapter is meant for Faraday usage in Rails, not for Faraday that's used in other frameworks or situations.**_
 
+## Why Use Faraday::HotMock instead of VCR?
+
+VCR focuses on keeping HTTP requests out of tests - Faraday::HotMock focuses on simulating API responses during development.
+
+To use VCR in development would require wrapping code in VCR blocks, which must then be undone before deployment. Simple, but tedious and error-prone.
+
+Faraday::HotMock requires no code changes to the application - it doesn't mock anything in production, even if you try. So while the HotMock adapter is "used", it just passes requests to the default or adapter or specified fallback.
+
+VCR works with any HTTP library, Faraday::HotMock only works with Faraday. This is a critical limitation unless you use only or primarily Faraday.
+
+You could, ostensibly, replace VCR with Faraday::HotMock in tests. VCR is battle-tested, well-written and widely used, so it's likely a better choice for testing. But the goal is to make Faraday::HotMock just as useful in all non-production environments.
 
 ## How It Works
 
@@ -19,7 +30,6 @@ This means that if you have a Staging environment, or a UAT environment along wi
 
 You can organize your per-environment mocks as you see fit - all in one file, or split between descriptive directories and file names.
 
-
 ## Installation
 
 Add this line to your application's Gemfile:
@@ -32,7 +42,6 @@ And then execute:
 ```bash
 $ bundle
 ```
-
 
 ## Usage
 
@@ -52,11 +61,11 @@ Optionally, specify a fallback adapter (`Faraday.default_adapter` is the default
 @conn = Faraday.new(url: "https://dog.ceo/api/") do |faraday|
   faraday.request :json
   faraday.response :json
-  faraday.adapter :hot_mock, fallback: :cool_community_adapter
+  faraday.adapter :hot_mock, fallback: :cool_community_adapter # only useful if the default adapter isn't already :cool_community_adapter!
 end
 ```
 
-Then add the switch: `tmp/mocking-#{Rails.env}.txt`. Just like Rails' own `tmp/caching-dev.txt` file, this will toggle HotMock on when present, and off when not present.
+Then add the switch: `tmp/mocking-#{Rails.env}.txt` (or use the [convenience method](#convenience-methods)). Just like Rails' own `tmp/caching-dev.txt` file, this will toggle HotMock on when present, and off when not present.
 
 > ⚠️ REMEMBER: For caching, it's `tmp/caching-dev.txt`, but for mocking it's `tmp/mocking-development.txt`
 
@@ -64,7 +73,21 @@ Now, create the directory `lib/faraday/mocks/` and a subdirectory for each envir
 
 > ⚠️ REMEMBER: it's `lib/faraday/mocks`, not `app/lib/faraday/mocks`
 
-Consider adding these directories to .gitignore unless you want mocks to be shared.
+### Git Ignore?
+
+It can be useful to share mocks with others, or to ensure you don't ever lose them.
+
+It can also be a terrible idea if your mocks are designed for your specific needs, and can cause noise in PRs and commits.
+
+It's up to you and your team what makes sense.
+
+In most cases, it makes sense to check in the mocks for the test environment, and ignore all the rest so in most cases you should add to your `.gitignore`:
+
+```
+# Ignore Faraday HotMocks except in test env
+lib/faraday/mocks/**
+!lib/faraday/mocks/test
+```
 
 ### Convenience Methods
 
@@ -76,19 +99,27 @@ Faraday::HotMock.disable!  # deletes tmp/mocking-#{Rails.env}.txt
 Faraday::HotMock.toggle!  # creates tmp/mocking-#{Rails.env}.txt if missing, deletes if present
 ```
 
-In addition, you can check if mocking is enabled with:
+You can check if mocking is enabled with:
 
 ```ruby
 Faraday::HotMock.enabled?  # returns true/false;
 Faraday::HotMock.disabled?  # returns true/false;
 ```
 
-These methods have limited use, but can be helpful in scripting scenarios.
+You can check if a given url and method will match against a mock with:
+
+```ruby
+Faraday::HotMock.mocked?(method: 'GET', url: 'https://vendorname.com/api/v1/endpoint')  # returns matching mock or false
+```
+
+These methods have limited use, but can be helpful in scripting scenarios, or to skip tedious file creation and deletion.
 
 ### Defining Mocks
 
+You can simply create a YAML file in `lib/faraday/mocks/#{Rails.env}/` with one or more mock definitions by hand:
+
 ```yaml
-# lib/faraday/mocks/development/vendor_name_mocks.yml
+# lib/faraday/mocks/development/any_name_you_like.yml
 - url_pattern: vendorname.com.*/endpoint
   method: POST
   status: 418
@@ -98,12 +129,14 @@ These methods have limited use, but can be helpful in scripting scenarios.
     error: I'm a teapot
 ```
 
+Or you can do the same in the default mock file for the current environment: `lib/faraday/mocks/#{Rails.env}/hot_mocks.yml`.
+
 Now, any POST request made to `vendorname.com/api/v1/endpoint` will return a mock 418 response with a JSON body. A GET to the same endpoint will make the actual call.
 
 If you edit the file to be:
 
 ```yaml
-# lib/faraday/mocks/development/vendor_name_mocks.yml
+# lib/faraday/mocks/development/any_name_you_like.yml
 - url_pattern: vendorname.com.*/endpoint
   method: POST
   status: 503
@@ -115,7 +148,27 @@ If you edit the file to be:
 
 then the next request made to `vendorname.com/api/v1/endpoint` will return a mock 503 response with a JSON body. No need to reload anything.
 
-This lets you quickly simulate any type of response you need.
+If you want to add a mock from the Rails console, you can use `Faraday::HotMock.mock!(method: [method], url_pattern: [url_pattern], status: [status], headers: [headers], body: [body])`. This will add the mock to the default mock file for the current environment.
+
+A mock can be recorded by calling `Faraday::HotMock.record(method: [method], url: [url])`. This will make the actual call and then store the response in the default mock file for the current environment: `lib/faraday/mocks/#{Rails.env}/hot_mocks.yml`.
+
+If a mock already exists for that method and URL, no request will be made and `false` will be returned.
+
+Use `Faraday::HotMock.record!` (with a bang) to force recording even if a mock already exists. This will remove the old matching mock and put the new one in its place.
+
+> ⚠️ WARNING: Recording does not remove any mocks from custom files, only from the default `hot_mocks.yml` file. If there are duplicates between custom files and the default file, there is no guarantee which one will be used.
+
+Once recorded, you can easily edit the mock file to change status codes, headers, or body content as needed.
+
+If you need to know where the mock file is located, you can call `Faraday::HotMock.hot_mock_file`, which will return the full path to the default mock file for the current environment.
+
+### REGEX and You(r Mocks)
+
+When recording a mock, you must pass a full URL. However, when defining mocks in YAML files, you can use regular expressions for more flexible matching.
+
+Remember that once recorded, the `url_pattern` can be adjusted.
+
+### Disabling Mocks
 
 If you want to disable mocks, you can:
 
@@ -127,13 +180,9 @@ If you want to disable mocks, you can:
 - Delete the directory
 - Use the [convenience methods](#convenience-methods)
 
-If you'd rather keep the file(s) around, just delete `tmp/mocking-development.txt`. That will globally disable any mocked responses.
-
-
 ## Contributing
 
 Fork, work, PR while following the [Code of Conduct](https://github.com/seanhogge/faraday-hot_mock/CODE_OF_CONDUCT.md)
-
 
 ## License
 

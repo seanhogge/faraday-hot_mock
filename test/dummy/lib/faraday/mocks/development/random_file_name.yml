@@ -1,7 +1,0 @@
-- url_pattern: dog.ceo.*/random
-  method: GET
-  status: 503
-  headers:
-    Content-Type: application/json
-  body:
-    error: "Service Unavailable"

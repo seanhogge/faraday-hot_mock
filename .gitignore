@@ -9,3 +9,5 @@
 /test/dummy/storage/
 /test/dummy/tmp/
 *.gem
+/test/dummy/lib/faraday/mocks/**
+!/test/dummy/lib/faraday/mocks/test
