@@ -61,4 +61,28 @@ class Faraday::HotMockTest < ActiveSupport::TestCase
     mocked_get_request = DogPhotoService.new.conn.get "breed/pyrenees/images"
     assert mocked_get_request.status == 418, "Expected a mocked request to be a teapot (return status 418)".black.on_red
   end
+
+  test "can enable and disable mocking via module methods" do
+    assert_not File.exist?(Rails.root.join("tmp/mocking-test.txt")), "SETUP: The mocking file should not exist before the test.".black.on_yellow
+
+    Faraday::HotMock.enable!
+    assert     File.exist?(Rails.root.join("tmp/mocking-test.txt")), "The mocking file should exist after enabling".black.on_red
+    assert     Faraday::HotMock.enabled?, "`enabled?` should be `true` after being enabled".black.on_red
+    assert_not Faraday::HotMock.disabled?, "`disabled?` should be `false` after being enabled".black.on_red
+
+    Faraday::HotMock.disable!
+    assert_not File.exist?(Rails.root.join("tmp/mocking-test.txt")), "The mocking file should not exist after disabling".black.on_red
+    assert_not Faraday::HotMock.enabled?, "`enabled?` should be `false` after being disabled".black.on_red
+    assert     Faraday::HotMock.disabled?, "`disabled?` should be `true` after being disabled".black.on_red
+
+    Faraday::HotMock.toggle!
+    assert     File.exist?(Rails.root.join("tmp/mocking-test.txt")), "The mocking file should exist after toggling from disabled".black.on_red
+    assert     Faraday::HotMock.enabled?, "`enabled?` should be true after toggling from disabled".black.on_red
+    assert_not Faraday::HotMock.disabled?, "`disabled?` should be false after toggling from disabled".black.on_red
+
+    Faraday::HotMock.toggle!
+    assert_not File.exist?(Rails.root.join("tmp/mocking-test.txt")), "The mocking file should not exist after toggling from enabled".black.on_red
+    assert_not Faraday::HotMock.enabled?, "`enabled?` should be false after toggling from enabled".black.on_red
+    assert     Faraday::HotMock.disabled?, "`disabled?` should be true after toggling from enabled".black.on_red
+  end
 end

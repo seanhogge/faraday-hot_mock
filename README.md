@@ -7,9 +7,13 @@ This adapter attempts to make that simpler by parsing YAML files at runtime. If 
 _**This adapter is meant for Faraday usage in Rails, not for Faraday that's used in other frameworks or situations.**_
 
 
-## Usage
+## How It Works
 
-Create YAML files in `lib/faraday/mocks/#{Rails.env}` - the name of the files doesn't matter, and you can nest them in subdirectories.
+When a request is made, Faraday::HotMock checks for the presence of a file named `tmp/mocking-#{Rails.env}.txt`. If that file exists, HotMock is enabled.
+
+When HotMock is enabled, it looks for YAML files in `lib/faraday/mocks/#{Rails.env}`. Each YAML file can contain one or more mock definitions.
+
+For the YAML files in `lib/faraday/mocks/#{Rails.env}`, the name of the files don't matter, and you can nest them in subdirectories.
 
 This means that if you have a Staging environment, or a UAT environment along with a Demo and Development environment, you can mock each separately.
 
@@ -29,7 +33,10 @@ And then execute:
 $ bundle
 ```
 
-Then, use this adapter in your middleware pipeline, making sure that it's last:
+
+## Usage
+
+Add this adapter to your middleware pipeline, making sure that it's last:
 
 ```ruby
 @conn = Faraday.new(url: "https://dog.ceo/api/") do |faraday|
@@ -58,6 +65,27 @@ Now, create the directory `lib/faraday/mocks/` and a subdirectory for each envir
 > ⚠️ REMEMBER: it's `lib/faraday/mocks`, not `app/lib/faraday/mocks`
 
 Consider adding these directories to .gitignore unless you want mocks to be shared.
+
+### Convenience Methods
+
+You can enable or disable mocking programmatically with these methods:
+
+```ruby
+Faraday::HotMock.enable!   # creates tmp/mocking-#{Rails.env}.txt
+Faraday::HotMock.disable!  # deletes tmp/mocking-#{Rails.env}.txt
+Faraday::HotMock.toggle!  # creates tmp/mocking-#{Rails.env}.txt if missing, deletes if present
+```
+
+In addition, you can check if mocking is enabled with:
+
+```ruby
+Faraday::HotMock.enabled?  # returns true/false;
+Faraday::HotMock.disabled?  # returns true/false;
+```
+
+These methods have limited use, but can be helpful in scripting scenarios.
+
+### Defining Mocks
 
 ```yaml
 # lib/faraday/mocks/development/vendor_name_mocks.yml
@@ -97,6 +125,7 @@ If you want to disable mocks, you can:
 - Delete the entry
 - Delete the file(s)
 - Delete the directory
+- Use the [convenience methods](#convenience-methods)
 
 If you'd rather keep the file(s) around, just delete `tmp/mocking-development.txt`. That will globally disable any mocked responses.
 
