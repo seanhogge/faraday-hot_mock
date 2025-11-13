@@ -8,15 +8,15 @@ _**This adapter is meant for Faraday usage in Rails, not for Faraday that's used
 
 ## Why Use Faraday::HotMock instead of VCR?
 
-VCR focuses on keeping HTTP requests out of tests - Faraday::HotMock focuses on simulating API responses during development.
+[VCR](https://github.com/vcr/vcr) focuses on keeping HTTP requests out of tests - Faraday::HotMock focuses on simulating API responses during development.
 
-To use VCR in development would require wrapping code in VCR blocks, which must then be undone before deployment. Simple, but tedious and error-prone.
+To use [VCR](https://github.com/vcr/vcr) in development would require wrapping code in [VCR](https://github.com/vcr/vcr) blocks, which must then be undone before deployment. Simple, but tedious and error-prone.
 
 Faraday::HotMock requires no code changes to the application - it doesn't mock anything in production, even if you try. So while the HotMock adapter is "used", it just passes requests to the default or adapter or specified fallback.
 
-VCR works with any HTTP library, Faraday::HotMock only works with Faraday. This is a critical limitation unless you use only or primarily Faraday.
+[VCR](https://github.com/vcr/vcr) works with any HTTP library, Faraday::HotMock only works with Faraday. This is a critical limitation unless you use only or primarily Faraday.
 
-You could, ostensibly, replace VCR with Faraday::HotMock in tests. VCR is battle-tested, well-written and widely used, so it's likely a better choice for testing. But the goal is to make Faraday::HotMock just as useful in all non-production environments.
+You could, ostensibly, replace VCR with Faraday::HotMock in tests. [VCR](https://github.com/vcr/vcr) is battle-tested, well-written and widely used, so it's likely a better choice for testing. But the goal is to make Faraday::HotMock just as useful in all non-production environments.
 
 ## How It Works
 
