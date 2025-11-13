@@ -3,7 +3,7 @@ require "colorize"
 
 class Faraday::HotMockTest < ActiveSupport::TestCase
   setup do
-    @stub = stub_request(:get, /dog.ceo/).to_return(status: 200, body: "{}")
+    @stub = stub_request(:any, /dog.ceo/).to_return(status: 200, body: "{}")
   end
 
   teardown do
@@ -18,10 +18,8 @@ class Faraday::HotMockTest < ActiveSupport::TestCase
     assert_not File.exist?(Rails.root.join("tmp/mocking-test.txt")), "SETUP: The mocking file should not exist before the test.".black.on_yellow
 
 
-    # WebMock.allow_net_connect! do
-      DogPhotoService.new.conn.get "breeds/image/random"
-      assert_requested @stub
-    # end
+    DogPhotoService.new.conn.get "breeds/image/random"
+    assert_requested @stub
 
     FileUtils.touch(Rails.root.join("tmp/mocking-test.txt"))
     assert File.exist?(Rails.root.join("tmp/mocking-test.txt")), "SETUP: The mocking file should have been successfully created.".black.on_yellow
@@ -48,10 +46,8 @@ class Faraday::HotMockTest < ActiveSupport::TestCase
     mocked_get_request = DogPhotoService.new.conn.get "breeds/image/breeds/list/all"
     assert mocked_get_request.status == 418, "Expected a mocked request to be a teapot (return status 418)".black.on_red
 
-    WebMock.allow_net_connect! do
-      DogPhotoService.new.conn.post "breeds/image/breeds/list/all"
-      assert_requested @stub
-    end
+    DogPhotoService.new.conn.post "breeds/image/breeds/list/all"
+    assert_requested @stub
   end
 
   test "YAML files in subdirectories are used for mock matching" do
