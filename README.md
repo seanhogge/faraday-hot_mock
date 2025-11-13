@@ -35,7 +35,7 @@ You can organize your per-environment mocks as you see fit - all in one file, or
 Add this line to your application's Gemfile:
 
 ```ruby
-gem "faraday-hot_mock", git: "https://github.com/seanhogge/faraday-hot_mock"
+gem "faraday-hot_mock"
 ```
 
 And then execute:
