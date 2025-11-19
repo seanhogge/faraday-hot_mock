@@ -42,6 +42,7 @@ module Faraday
     end
 
     def mock!(method:, url:, status:, headers: {}, body: nil)
+      FileUtils.mkdir_p(hot_mock_dir)
       FileUtils.touch(hot_mock_file)
 
       mocks = YAML.load_file(hot_mock_file) || []
