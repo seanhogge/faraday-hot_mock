@@ -25,9 +25,9 @@ module Faraday
         if Faraday::HotMock.vcr && !Faraday::HotMock.mocked?(method: env.method, url: env.url)
           case Faraday::HotMock.vcr
           when Symbol, String
-            Faraday::HotMock.record(method: env.method, url: env.url, into_scenario: Faraday::HotMock.vcr)
+            Faraday::HotMock.record(method: env.method, url: env.url, headers: env.request_headers, body: env.request_body, into_scenario: Faraday::HotMock.vcr)
           else
-            Faraday::HotMock.record(method: env.method, url: env.url)
+            Faraday::HotMock.record(method: env.method, url: env.url, headers: env.request_headers, body: env.request_body)
           end
         end
 
