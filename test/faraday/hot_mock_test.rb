@@ -204,7 +204,6 @@ class Faraday::HotMockTest < ActiveSupport::TestCase
     assert_equal "application/json", mocked_request.headers["Content-Type"]
     assert mocked_request.headers[Faraday::HotMock::HEADERS[:recorded]], "The response headers should contain '#{Faraday::HotMock::HEADERS[:recorded]}'".black.on_red
     assert mocked_request.body.key?("message"), "The response body should contain a 'message' key".black.on_red
-
   end
 
   test "record does not duplicate existing mocks" do
