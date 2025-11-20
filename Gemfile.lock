@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    faraday-hot_mock (0.6.0)
+    faraday-hot_mock (0.6.1)
       faraday (>= 2, < 3)
       rails (>= 7)
 

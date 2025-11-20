@@ -163,6 +163,32 @@ module Faraday
         Dir.glob(File.join(hot_mock_dir, "**", "*.{yml,yaml}")).reject { |path| path.include?("/scenarios/") }
       end
     end
+
+    def scenario
+      YAML.load_file(settings_file)["scenario"] rescue nil
+    end
+
+    def scenario=(name)
+      settings = YAML.load_file(settings_file) rescue {}
+
+      settings["scenario"] = name
+      File.write(settings_file, settings.to_yaml)
+    end
+
+    def settings_file
+      Rails.root.join("tmp/hot_mock_settings.yml")
+    end
+
+    def vcr
+      YAML.load_file(settings_file)["vcr"] rescue nil
+    end
+
+    def vcr=(value)
+      settings = YAML.load_file(settings_file) rescue {}
+
+      settings["vcr"] = value
+      File.write(settings_file, settings.to_yaml)
+    end
   end
 end
 

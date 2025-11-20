@@ -15,8 +15,9 @@ class Faraday::HotMockTest < ActiveSupport::TestCase
   end
 
   teardown do
-    FileUtils.rm(Rails.root.join("tmp/mocking-test.txt")) if File.exist?(Rails.root.join("tmp/mocking-test.txt"))
-    FileUtils.rm(Rails.root.join("lib/faraday/mocks/test/hot_mocks.yml")) if File.exist?(Rails.root.join("lib/faraday/mocks/test/hot_mocks.yml"))
+    FileUtils.rm(Faraday::HotMock.hot_mocking_file, force: true)
+    FileUtils.rm(Faraday::HotMock.hot_mock_file, force: true)
+    FileUtils.rm(Faraday::HotMock.settings_file, force: true)
     FileUtils.rm_rf(Faraday::HotMock.scenario_dir)
     Faraday::HotMock.scenario = nil
     WebMock.enable!
@@ -367,5 +368,73 @@ class Faraday::HotMockTest < ActiveSupport::TestCase
       Faraday::HotMock::HEADERS[:mocked],
       "Expected the response to include the '#{Faraday::HotMock::HEADERS[:mocked]}' header".black.on_red,
     )
+  end
+
+  test "saving a setting creates the settings file if it does not exist" do
+    FileUtils.rm(Faraday::HotMock.settings_file)
+
+    assert_not File.exist?(Faraday::HotMock.settings_file), "SETUP: The settings file should not exist before the test.".black.on_yellow
+
+    Faraday::HotMock.scenario = :another_test_scenario
+
+    assert File.exist?(Faraday::HotMock.settings_file), "Expected the settings file to be created when saving a setting".black.on_red
+
+    FileUtils.rm(Faraday::HotMock.settings_file)
+
+    assert_not File.exist?(Faraday::HotMock.settings_file), "SETUP: The settings file should not exist before the test.".black.on_yellow
+
+    Faraday::HotMock.vcr = :vcr_scenario
+
+    assert File.exist?(Faraday::HotMock.settings_file), "Expected the settings file to be created when saving a setting".black.on_red
+  end
+
+  test "setting a scenario saves it in the settings file" do
+    scenario_name = :test_scenario
+
+    Faraday::HotMock.scenario = scenario_name
+
+    assert_equal scenario_name, Faraday::HotMock.scenario, "Expected the set scenario to be returned by the scenario getter".black.on_red
+    assert File.exist?(Faraday::HotMock.settings_file), "Expected the settings file to exist after setting a scenario".black.on_red
+  end
+
+  test "setting a vcr value saves it in the settings file" do
+    vcr_value = :test_vcr_scenario
+
+    Faraday::HotMock.vcr = vcr_value
+
+    assert_equal vcr_value, Faraday::HotMock.vcr, "Expected the set vcr value to be returned by the vcr getter".black.on_red
+    assert File.exist?(Faraday::HotMock.settings_file), "Expected the settings file to exist after setting a vcr value".black.on_red
+  end
+
+  test "switching settings uses the last value set" do
+    assert_nil Faraday::HotMock.scenario, "SETUP: Expected the scenario to start as nil".black.on_yellow
+    assert_nil Faraday::HotMock.vcr, "SETUP: Expected the vcr value to start as nil".black.on_yellow
+
+    scenario_name = :first_scenario
+    vcr_value = :first_vcr
+
+    Faraday::HotMock.scenario = scenario_name
+    Faraday::HotMock.vcr = vcr_value
+
+    assert_equal scenario_name, Faraday::HotMock.scenario, "Expected the last set scenario to be returned by the scenario getter".black.on_red
+    assert_equal vcr_value, Faraday::HotMock.vcr, "Expected the last set vcr value to be returned by the vcr getter".black.on_red
+
+    new_scenario_name = :second_scenario
+    new_vcr_value = :second_vcr
+
+    Faraday::HotMock.scenario = new_scenario_name
+    Faraday::HotMock.vcr = new_vcr_value
+
+    assert_equal new_scenario_name, Faraday::HotMock.scenario, "Expected the last set scenario to be returned by the scenario getter".black.on_red
+    assert_equal new_vcr_value, Faraday::HotMock.vcr, "Expected the last set vcr value to be returned by the vcr getter".black.on_red
+
+    new_scenario_name = nil
+    new_vcr_value = nil
+
+    Faraday::HotMock.scenario = new_scenario_name
+    Faraday::HotMock.vcr = new_vcr_value
+
+    assert_nil Faraday::HotMock.scenario, "Expected the last set scenario to be returned by the scenario getter".black.on_red
+    assert_nil Faraday::HotMock.vcr, "Expected the last set vcr value to be returned by the vcr getter".black.on_red
   end
 end
