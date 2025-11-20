@@ -23,10 +23,33 @@ module Faraday
         end
 
         if Faraday::HotMock.enabled? && (mock = Faraday::HotMock.mocked?(method: env.method, url: env.url))
-          save_response(env, mock["status"] || 200, mock["body"] || "", mock["headers"] || {})
+          interpolate(mock, env) if mock_interpolated?(mock)
+
+          save_response(
+            env,
+            mock["status"] || 200,
+            mock["body"] || "",
+            (mock["headers"] || {}).merge("x-hot-mocked" => "true")
+          )
         else
           @fallback_adapter.new(@app, @options).call(env)
         end
+      end
+
+      private
+
+      def mock_interpolated?(mock)
+        mock.key?("interpolate") && mock["body"].is_a?(Hash)
+      end
+
+      def interpolate(mock, env)
+        request_hash = JSON.parse(env.request_body) rescue {}
+
+        interpolated_hash = mock["interpolate"].transform_values do |v|
+          v = request_hash[v]
+        end.compact
+
+        mock["body"].merge!(interpolated_hash || {})
       end
     end
   end

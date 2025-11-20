@@ -81,13 +81,48 @@ It can also be a terrible idea if your mocks are designed for your specific need
 
 It's up to you and your team what makes sense.
 
-In most cases, it makes sense to check in the mocks for the test environment, and ignore all the rest so in most cases you should add to your `.gitignore`:
+In most cases, it makes sense to not check in the mocks for any environment, so in most cases you should add to your `.gitignore`:
 
 ```
 # Ignore Faraday HotMocks except in test env
 lib/faraday/mocks/**
-!lib/faraday/mocks/test
 ```
+
+### Scenarios
+
+You can use directories to conditionally group mocks. For example, you might want a "success" scenario and an "failure" scenario.
+
+To do that, simply create the `/scenarios/success` and `/scenarios/failure` subdirectories within `lib/faraday/mocks/#{Rails.env}/`, and place the appropriate mock files in each, probably with the same endpoints but with different responses.
+
+Then call `Faraday::HotMock.scenario = :success` or `Faraday::HotMock.scenario = :failure` to switch between them.
+
+When a scenario is active, only mocks in that scenario directory will be considered. If no matching mock is found in that scenario, then the real request will be made.
+
+To use the mocks not in the `scenarios` directory again, simply set `Faraday::HotMock.scenario = nil`.
+
+### Testing
+
+In tests, you can certainly use a mocking library of choice. In many cases, that might be easier. This is because Faraday::HotMock is built for quick iteration using runtime-loaded YAML files, which isn't needed in tests.
+
+If instead you want to use Faraday::HotMock, you can create mocked responses by hand, or use `Faraday::HotMock.mock!` to define mocks in a very similar way to other mocking libraries (similar to `stub_request` in WebMock, for example).
+
+The most basic setup would be:
+
+- Call `Faraday::HotMock.enable!` in your test setup
+- Call `Faraday::HotMock.disable!` in your test teardown
+- In a given test/spec or in a method, call `Faraday::HotMock.mock!(method: [method], url_pattern: [url], status: [status code], headers: [headers hash], body: [body])` to define a mock for that test/spec.
+- Remove the mock file in teardown by referencing `Faraday::HotMock.hot_mock_file` (via `File.delete` or `FileUtils.rm`) since you probably don't want them to persist between tests
+
+If you use scenarios, then you can do a bit less:
+
+- Call `Faraday::HotMock.enable!` in your test setup
+- Call `Faraday::HotMock.disable!` in your test teardown
+- Call `Faraday::HotMock.scenario = :your_scenario_name` in a given test/spec
+- Call `Faraday::HotMock.scenario = nil` in your test teardown if using scenarios
+
+Overall, this may be a bit more work but it has the advantage that you can use the same mocking mechanism in both development and testing, which can reduce surprises when moving code between the two.
+
+Small bonus: if you use `Faraday::HotMock` everywhere, you can remove the dependency for whichever mocking library/libraries you were using before.
 
 ### Convenience Methods
 

@@ -1,5 +1,11 @@
 # Faraday::HotMock Change Log
 
+## v0.5.0
+
+- Added scenarios
+- Added an undocumented (for now) interpolation feature
+- Adjusted headers included in mocked responses
+
 ## v0.4.0
 
 - Added more convenience methods

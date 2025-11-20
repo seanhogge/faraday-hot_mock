@@ -7,6 +7,8 @@ module Faraday
   module HotMock
     extend self
 
+    attr_accessor :scenario
+
     def disable!
       FileUtils.rm_f(hot_mocking_file)
     end
@@ -31,7 +33,7 @@ module Faraday
       end
     end
 
-    def delete_mock(method:, url:)
+    def delete(method:, url:)
       return unless File.exist?(hot_mock_file)
 
       mocks = YAML.load_file(hot_mock_file) || []
@@ -79,7 +81,7 @@ module Faraday
         "method"      => method.to_s.upcase,
         "url_pattern" => url,
         "status"      => response.status,
-        "headers"     => response.headers.to_h.merge("x-hotmock-recorded-at" => Time.now.utc.iso8601),
+        "headers"     => response.headers.to_h.merge("x-hot-mock-recorded-at" => Time.now.utc.iso8601),
         "body"        => response.body
       }
 
@@ -103,7 +105,7 @@ module Faraday
         "method"      => method.to_s.upcase,
         "url_pattern" => url,
         "status"      => response.status,
-        "headers"     => response.headers.to_h.merge("x-hotmock-recorded-at" => Time.now.utc.iso8601),
+        "headers"     => response.headers.to_h.merge("x-hot-mock-recorded-at" => Time.now.utc.iso8601, "x-hot-mock" => "true"),
         "body"        => response.body
       }
 
@@ -114,6 +116,10 @@ module Faraday
 
     def hot_mock_dir
       Rails.root.join "lib/faraday/mocks/#{Rails.env}"
+    end
+
+    def scenario_dir
+      Rails.root.join "lib/faraday/mocks/#{Rails.env}/scenarios"
     end
 
     def hot_mocking_file
@@ -138,7 +144,11 @@ module Faraday
     end
 
     def all_hot_mock_files
-      Dir.glob(File.join(hot_mock_dir, "**", "*.{yml,yaml}"))
+      if scenario
+        Dir.glob(File.join(hot_mock_dir, "scenarios", scenario.to_s, "**", "*.{yml,yaml}"))
+      else
+        Dir.glob(File.join(hot_mock_dir, "**", "*.{yml,yaml}")).reject { |path| path.include?("/scenarios/") }
+      end
     end
   end
 end
