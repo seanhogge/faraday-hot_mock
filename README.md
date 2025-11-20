@@ -88,6 +88,8 @@ In most cases, it makes sense to not check in the mocks for any environment, so 
 lib/faraday/mocks/**
 ```
 
+If you're using scenarios, however, it's probably useful to check those in since they're only activated when a scenario is directly selected.
+
 ### Scenarios
 
 You can use directories to conditionally group mocks. For example, you might want a "success" scenario and an "failure" scenario.
