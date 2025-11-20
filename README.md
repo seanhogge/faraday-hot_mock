@@ -92,7 +92,7 @@ If you're using scenarios, however, it's probably useful to check those in since
 
 ### Scenarios
 
-You can use directories to conditionally group mocks. For example, you might want a "success" scenario and an "failure" scenario.
+You can use directories to conditionally group mocks. For example, you might want a "success" scenario and a "failure" scenario.
 
 To do that, simply create the `/scenarios/success` and `/scenarios/failure` subdirectories within `lib/faraday/mocks/#{Rails.env}/`, and place the appropriate mock files in each, probably with the same endpoints but with different responses.
 
