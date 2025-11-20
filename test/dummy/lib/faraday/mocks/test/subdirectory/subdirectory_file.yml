@@ -1,4 +1,4 @@
-- url_pattern: dog.ceo.*/breed/pyrenees/images
+- url_pattern: dog.ceo.*/breed/boxer/images
   method: GET
   status: 418
   headers:

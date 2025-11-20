@@ -18,19 +18,23 @@ module Faraday
       def call(env)
         super
 
-        if Rails.env.production?
+        if Rails.env.production? || Faraday::HotMock.disabled?
           return @fallback_adapter.new(@app, @options).call(env)
         end
 
-        if Faraday::HotMock.enabled? && (mock = Faraday::HotMock.mocked?(method: env.method, url: env.url))
+        if Faraday::HotMock.vcr && !Faraday::HotMock.mocked?(method: env.method, url: env.url)
+          case Faraday::HotMock.vcr
+          when Symbol, String
+            Faraday::HotMock.record(method: env.method, url: env.url, into_scenario: Faraday::HotMock.vcr)
+          else
+            Faraday::HotMock.record(method: env.method, url: env.url)
+          end
+        end
+
+        if (mock = Faraday::HotMock.mocked?(method: env.method, url: env.url))
           interpolate(mock, env) if mock_interpolated?(mock)
 
-          save_response(
-            env,
-            mock["status"] || 200,
-            mock["body"] || "",
-            (mock["headers"] || {}).merge("x-hot-mocked" => "true")
-          )
+          mock_response!(env, mock)
         else
           @fallback_adapter.new(@app, @options).call(env)
         end
@@ -50,6 +54,15 @@ module Faraday
         end.compact
 
         mock["body"].merge!(interpolated_hash || {})
+      end
+
+      def mock_response!(env, mock)
+        save_response(
+          env,
+          mock["status"] || 200,
+          mock["body"] || "",
+          (mock["headers"] || {}).merge(Faraday::HotMock::HEADERS[:mocked] => "true")
+        )
       end
     end
   end

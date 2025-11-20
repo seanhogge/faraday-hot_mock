@@ -1,4 +1,4 @@
-- url_pattern: dog.ceo.*/random
+- url_pattern: dog.ceo.*/breeds/image/random
   method: GET
   status: 418
   headers:

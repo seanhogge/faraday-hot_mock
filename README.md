@@ -88,7 +88,7 @@ In most cases, it makes sense to not check in the mocks for any environment, so 
 lib/faraday/mocks/**
 ```
 
-If you're using scenarios, however, it's probably useful to check those in since they're only activated when a scenario is directly selected.
+If you're using scenarios, however, it's probably useful to check in any environment directory that has scenarios since they're only activated when a scenario is directly selected.
 
 ### Scenarios
 
@@ -101,6 +101,24 @@ Then call `Faraday::HotMock.scenario = :success` or `Faraday::HotMock.scenario =
 When a scenario is active, only mocks in that scenario directory will be considered. If no matching mock is found in that scenario, then the real request will be made.
 
 To use the mocks not in the `scenarios` directory again, simply set `Faraday::HotMock.scenario = nil`.
+
+### VCR Mode
+
+VCR mode basically calls `Faraday::HotMock.record` on all requests made until it's turned off. You can start it with:
+
+```ruby
+Faraday::HotMock.vcr = true
+```
+
+Just like using `Faraday::HotMock.record` individually, these mocks are recorded to the main default file (`Faraday::HotMock.hot_mock_file`)
+
+You can also record directly into a scenario, which will create the scenario directory structure, switch the current scenario and begin recording responses. This will continue until you set `Faraday::HotMock.vcr` to `false` or another scenario name.
+
+```ruby
+Faraday::HotMock.vcr = :new_scenario
+```
+
+> NOTE: VCR Mode does not overwrite previously recorded mocks
 
 ### Testing
 

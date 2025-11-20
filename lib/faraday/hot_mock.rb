@@ -7,7 +7,13 @@ module Faraday
   module HotMock
     extend self
 
-    attr_accessor :scenario
+    attr_accessor :scenario, :vcr
+
+    HEADERS = {
+      recorded: "x-hot-mock-recorded-at",
+      mocked: "x-hot-mocked"
+    }
+    FILE_NAME = "hot_mocks.yml"
 
     def disable!
       FileUtils.rm_f(hot_mocking_file)
@@ -66,22 +72,25 @@ module Faraday
       mocks.find { |entry| entry["method"].to_s.upcase == method.to_s.upcase && Regexp.new(entry["url_pattern"]).match?(url.to_s) } || false
     end
 
-    def record(method:, url:)
+    def record(method:, url:, into_scenario: nil)
+      self.scenario = into_scenario if into_scenario.present?
+
       return false if mocked?(method:, url:)
 
       faraday = Faraday.new
 
       response = faraday.send(method.downcase.to_sym, url)
 
+      FileUtils.mkdir_p(hot_mock_dir)
       FileUtils.touch(hot_mock_file)
 
       hot_mocks = YAML.load_file(hot_mock_file) || []
 
       hot_mocks << {
         "method"      => method.to_s.upcase,
-        "url_pattern" => url,
+        "url_pattern" => url.to_s,
         "status"      => response.status,
-        "headers"     => response.headers.to_h.merge("x-hot-mock-recorded-at" => Time.now.utc.iso8601),
+        "headers"     => response.headers.to_h.merge(HEADERS[:recorded] => Time.now.utc.iso8601),
         "body"        => response.body
       }
 
@@ -103,9 +112,9 @@ module Faraday
 
       hot_mocks << {
         "method"      => method.to_s.upcase,
-        "url_pattern" => url,
+        "url_pattern" => url.to_s,
         "status"      => response.status,
-        "headers"     => response.headers.to_h.merge("x-hot-mock-recorded-at" => Time.now.utc.iso8601, "x-hot-mock" => "true"),
+        "headers"     => response.headers.to_h.merge(HEADERS[:recorded] => Time.now.utc.iso8601, "x-hot-mock" => "true"),
         "body"        => response.body
       }
 
@@ -115,7 +124,11 @@ module Faraday
     end
 
     def hot_mock_dir
-      Rails.root.join "lib/faraday/mocks/#{Rails.env}"
+      if self.scenario
+        Rails.root.join "lib/faraday/mocks/#{Rails.env}/scenarios/#{self.scenario}"
+      else
+        Rails.root.join "lib/faraday/mocks/#{Rails.env}"
+      end
     end
 
     def scenario_dir
@@ -127,7 +140,7 @@ module Faraday
     end
 
     def hot_mock_file
-      Rails.root.join(hot_mock_dir, "hot_mocks.yml")
+      Rails.root.join(hot_mock_dir, FILE_NAME)
     end
 
     def mocks
@@ -144,8 +157,8 @@ module Faraday
     end
 
     def all_hot_mock_files
-      if scenario
-        Dir.glob(File.join(hot_mock_dir, "scenarios", scenario.to_s, "**", "*.{yml,yaml}"))
+      if scenario.present?
+        Dir.glob(File.join(hot_mock_dir, "**", "*.{yml,yaml}"))
       else
         Dir.glob(File.join(hot_mock_dir, "**", "*.{yml,yaml}")).reject { |path| path.include?("/scenarios/") }
       end

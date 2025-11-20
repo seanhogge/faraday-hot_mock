@@ -1,5 +1,9 @@
 # Faraday::HotMock Change Log
 
+## v0.6.0
+
+- Added VCR mode
+
 ## v0.5.0
 
 - Added scenarios

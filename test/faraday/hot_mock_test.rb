@@ -3,7 +3,7 @@ require "colorize"
 
 class Faraday::HotMockTest < ActiveSupport::TestCase
   setup do
-    @stub = stub_request(:any, /dog.ceo/).to_return(status: 200, body: "{}")
+    @stub = stub_request(:any, /dog.ceo/).to_return(status: 200, body: '{"attempted_real_request": "true"}')
     @recorded_stub = stub_request(
       :any,
       "https://dog.ceo/record_mock",
@@ -37,8 +37,8 @@ class Faraday::HotMockTest < ActiveSupport::TestCase
 
     mocked_request = DogPhotoService.new.conn.get "breeds/image/random"
     assert mocked_request.status == 418, "Expected a mocked request to be a teapot (return status 418)".black.on_red
-    assert_includes mocked_request.headers.keys, "x-hot-mocked", "Expected the success scenario to include the 'x-hot-mocked' header".black.on_red
-    assert_equal "true", mocked_request.headers["x-hot-mocked"], "Expected the 'x-hot-mocked' header to be 'true'".black.on_red
+    assert_includes mocked_request.headers.keys, Faraday::HotMock::HEADERS[:mocked], "Expected the success scenario to include the 'x-hot-mocked' header".black.on_red
+    assert_equal "true", mocked_request.headers[Faraday::HotMock::HEADERS[:mocked]], "Expected the 'x-hot-mocked' header to be 'true'".black.on_red
   end
 
   test "multiple files can be loaded from the mock directory" do
@@ -47,13 +47,13 @@ class Faraday::HotMockTest < ActiveSupport::TestCase
 
     mocked_request_1 = DogPhotoService.new.conn.get "breeds/image/random"
     assert mocked_request_1.status == 418, "Expected a mocked request to be a teapot (return status 418)".black.on_red
-    assert_includes mocked_request_1.headers.keys, "x-hot-mocked", "Expected the success scenario to include the 'x-hot-mocked' header".black.on_red
-    assert_equal "true", mocked_request_1.headers["x-hot-mocked"], "Expected the 'x-hot-mocked' header to be 'true'".black.on_red
+    assert_includes mocked_request_1.headers.keys, Faraday::HotMock::HEADERS[:mocked], "Expected the success scenario to include the 'x-hot-mocked' header".black.on_red
+    assert_equal "true", mocked_request_1.headers[Faraday::HotMock::HEADERS[:mocked]], "Expected the 'x-hot-mocked' header to be 'true'".black.on_red
 
     mocked_request_2 = DogPhotoService.new.conn.get "breeds/image/breeds/list/all"
     assert mocked_request_2.status == 418, "Expected a mocked request to be a teapot (return status 418)".black.on_red
-    assert_includes mocked_request_2.headers.keys, "x-hot-mocked", "Expected the success scenario to include the 'x-hot-mocked' header".black.on_red
-    assert_equal "true", mocked_request_2.headers["x-hot-mocked"], "Expected the 'x-hot-mocked' header to be 'true'".black.on_red
+    assert_includes mocked_request_2.headers.keys, Faraday::HotMock::HEADERS[:mocked], "Expected the success scenario to include the 'x-hot-mocked' header".black.on_red
+    assert_equal "true", mocked_request_2.headers[Faraday::HotMock::HEADERS[:mocked]], "Expected the 'x-hot-mocked' header to be 'true'".black.on_red
   end
 
   test "mocks can be filtered by HTTP method" do
@@ -62,21 +62,20 @@ class Faraday::HotMockTest < ActiveSupport::TestCase
 
     mocked_request = DogPhotoService.new.conn.get "breeds/image/breeds/list/all"
     assert mocked_request.status == 418, "Expected a mocked request to be a teapot (return status 418)".black.on_red
-    assert_includes mocked_request.headers.keys, "x-hot-mocked", "Expected the success scenario to include the 'x-hot-mocked' header".black.on_red
-    assert_equal "true", mocked_request.headers["x-hot-mocked"], "Expected the 'x-hot-mocked' header to be 'true'".black.on_red
+    assert_includes mocked_request.headers.keys, Faraday::HotMock::HEADERS[:mocked], "Expected the success scenario to include the 'x-hot-mocked' header".black.on_red
+    assert_equal "true", mocked_request.headers[Faraday::HotMock::HEADERS[:mocked]], "Expected the 'x-hot-mocked' header to be 'true'".black.on_red
 
     DogPhotoService.new.conn.post "breeds/image/breeds/list/all"
     assert_requested @stub
   end
 
   test "YAML files in subdirectories are used for mock matching" do
-    FileUtils.touch(Rails.root.join("tmp/mocking-test.txt"))
-    assert File.exist?(Rails.root.join("tmp/mocking-test.txt")), "SETUP: The mocking file should have been successfully created.".black.on_yellow
+    Faraday::HotMock.enable!
 
-    mocked_request = DogPhotoService.new.conn.get "breed/pyrenees/images"
+    mocked_request = DogPhotoService.new.conn.get "breed/boxer/images"
     assert mocked_request.status == 418, "Expected a mocked request to be a teapot (return status 418)".black.on_red
-    assert_includes mocked_request.headers.keys, "x-hot-mocked", "Expected the success scenario to include the 'x-hot-mocked' header".black.on_red
-    assert_equal "true", mocked_request.headers["x-hot-mocked"], "Expected the 'x-hot-mocked' header to be 'true'".black.on_red
+    assert_includes mocked_request.headers.keys, Faraday::HotMock::HEADERS[:mocked], "Expected the success scenario to include the 'x-hot-mocked' header".black.on_red
+    assert_equal "true", mocked_request.headers[Faraday::HotMock::HEADERS[:mocked]], "Expected the 'x-hot-mocked' header to be 'true'".black.on_red
   end
 
   test "can enable and disable mocking via module methods" do
@@ -115,8 +114,9 @@ class Faraday::HotMockTest < ActiveSupport::TestCase
     end
 
     assert_equal 200, mocked_request.status
+
     assert_equal(
-      "{}",
+      '{"attempted_real_request": "true"}',
       mocked_request.body
     )
 
@@ -151,8 +151,8 @@ class Faraday::HotMockTest < ActiveSupport::TestCase
       { message: "I'm a hot_mocked teapot", status: "418" },
       mocked_request.body
     )
-    assert_includes mocked_request.headers.keys, "x-hot-mocked", "Expected the success scenario to include the 'x-hot-mocked' header".black.on_red
-    assert_equal "true", mocked_request.headers["x-hot-mocked"], "Expected the 'x-hot-mocked' header to be 'true'".black.on_red
+    assert_includes mocked_request.headers.keys, Faraday::HotMock::HEADERS[:mocked], "Expected the success scenario to include the 'x-hot-mocked' header".black.on_red
+    assert_equal "true", mocked_request.headers[Faraday::HotMock::HEADERS[:mocked]], "Expected the 'x-hot-mocked' header to be 'true'".black.on_red
   end
 
   test "can check for existing mocks via the `mocked?` method" do
@@ -192,7 +192,7 @@ class Faraday::HotMockTest < ActiveSupport::TestCase
 
     assert_equal 200, mocked_request.status
     assert_equal "application/json", mocked_request.headers["Content-Type"]
-    assert mocked_request.headers["x-hot-mock-recorded-at"], "The response headers should contain 'x-hot-mock-recorded-at'".black.on_red
+    assert mocked_request.headers[Faraday::HotMock::HEADERS[:recorded]], "The response headers should contain '#{Faraday::HotMock::HEADERS[:recorded]}'".black.on_red
     assert mocked_request.body.key?("message"), "The response body should contain a 'message' key".black.on_red
   end
 
@@ -214,7 +214,7 @@ class Faraday::HotMockTest < ActiveSupport::TestCase
     mocked_request = faraday.get(url)
 
     assert_equal 418, mocked_request.status, "The status code should remain 418 after attempting to record an existing mock".black.on_red
-    assert_not mocked_request.headers.key?("x-hot-mock-recorded-at"), "The response headers should not contain 'x-hot-mock-recorded-at' after attempting to record an existing mock".black.on_red
+    assert_not mocked_request.headers.key?(Faraday::HotMock::HEADERS[:recorded]), "The response headers should not contain 'x-hot-mock-recorded-at' after attempting to record an existing mock".black.on_red
   end
 
   test "can forcefully record mocks via the `record!` method" do
@@ -235,7 +235,7 @@ class Faraday::HotMockTest < ActiveSupport::TestCase
     mocked_request = faraday.get(url)
 
     assert_equal 200, mocked_request.status, "The status code should be updated to 200 after forcefully recording the mock".black.on_red
-    assert mocked_request.headers.key?("x-hot-mock-recorded-at"), "The response headers should contain 'x-hot-mock-recorded-at' after forcefully recording the mock".black.on_red
+    assert mocked_request.headers.key?(Faraday::HotMock::HEADERS[:recorded]), "The response headers should contain 'x-hot-mock-recorded-at' after forcefully recording the mock".black.on_red
   end
 
   test "a scenario constrains matches to only those in the scenario" do
@@ -278,16 +278,16 @@ class Faraday::HotMockTest < ActiveSupport::TestCase
     success_request = faraday.get("breeds/image/random")
 
     assert_equal 201, success_request.status, "Expected the success scenario to return status 201".black.on_red
-    assert_includes success_request.headers.keys, "x-hot-mocked", "Expected the success scenario to include the 'x-hot-mocked' header".black.on_red
-    assert_equal "true", success_request.headers["x-hot-mocked"], "Expected the 'x-hot-mocked' header to be 'true'".black.on_red
+    assert_includes success_request.headers.keys, Faraday::HotMock::HEADERS[:mocked], "Expected the success scenario to include the 'x-hot-mocked' header".black.on_red
+    assert_equal "true", success_request.headers[Faraday::HotMock::HEADERS[:mocked]], "Expected the 'x-hot-mocked' header to be 'true'".black.on_red
 
     Faraday::HotMock.scenario = :failure
 
     failure_request = faraday.get("breeds/image/random")
 
     assert_equal 429, failure_request.status, "Expected the failure scenario to return status 429".black.on_red
-    assert_includes success_request.headers.keys, "x-hot-mocked", "Expected the success scenario to include the 'x-hot-mocked' header".black.on_red
-    assert_equal "true", success_request.headers["x-hot-mocked"], "Expected the 'x-hot-mocked' header to be 'true'".black.on_red
+    assert_includes success_request.headers.keys, Faraday::HotMock::HEADERS[:mocked], "Expected the success scenario to include the 'x-hot-mocked' header".black.on_red
+    assert_equal "true", success_request.headers[Faraday::HotMock::HEADERS[:mocked]], "Expected the 'x-hot-mocked' header to be 'true'".black.on_red
   end
 
   test "when no scenario is set, no mocks in scenarios directory are matched" do
@@ -316,7 +316,56 @@ class Faraday::HotMockTest < ActiveSupport::TestCase
     mocked_request = faraday.get("https://dog.ceo/api/breeds/image/random")
 
     assert_equal 418, mocked_request.status, "Expected the request to use the root mock request returning status 418".black.on_red
-    assert_includes mocked_request.headers.keys, "x-hot-mocked", "Expected the response to include the 'x-hot-mocked' header".black.on_red
-    assert_equal "true", mocked_request.headers["x-hot-mocked"], "Expected the 'x-hot-mocked' header to be 'true'".black.on_red
+    assert_includes mocked_request.headers.keys, Faraday::HotMock::HEADERS[:mocked], "Expected the response to include the 'x-hot-mocked' header".black.on_red
+    assert_equal "true", mocked_request.headers[Faraday::HotMock::HEADERS[:mocked]], "Expected the 'x-hot-mocked' header to be 'true'".black.on_red
+  end
+
+  test "vcr mode records a mock into a scenario and returns it if not already mocked, and changes current scenario" do
+    new_scenario_name = :juniper
+
+    Faraday::HotMock.enable!
+    Faraday::HotMock.vcr = new_scenario_name
+
+    unmocked_request = DogPhotoService.new.conn.get "breed/pyrenees/images/random"
+
+    assert File.exist?(Faraday::HotMock.scenario_dir.join(new_scenario_name.to_s, Faraday::HotMock::FILE_NAME))
+
+    assert_includes(
+      unmocked_request.headers.keys,
+      Faraday::HotMock::HEADERS[:recorded],
+      "Expected the response to include the 'x-hot-mock-recorded-at' header".black.on_red,
+    )
+
+    assert_includes(
+      unmocked_request.headers.keys,
+      Faraday::HotMock::HEADERS[:mocked],
+      "Expected the response to include the 'x-hot-mocked' header".black.on_red,
+    )
+
+    assert_equal(
+      new_scenario_name,
+      Faraday::HotMock.scenario, "Expected the current scenario to remain unchanged".black.on_red
+    )
+  end
+
+  test "vcr mode as boolean records a mock into default file" do
+    Faraday::HotMock.enable!
+    Faraday::HotMock.vcr = true
+
+    unmocked_request = DogPhotoService.new.conn.get "breed/pyrenees/images/random"
+
+    assert_not Dir.exist?(Faraday::HotMock.scenario_dir)
+
+    assert_includes(
+      unmocked_request.headers.keys,
+      Faraday::HotMock::HEADERS[:recorded],
+      "Expected the response to include the '#{Faraday::HotMock::HEADERS[:recorded]}' header".black.on_red,
+    )
+
+    assert_includes(
+      unmocked_request.headers.keys,
+      Faraday::HotMock::HEADERS[:mocked],
+      "Expected the response to include the '#{Faraday::HotMock::HEADERS[:mocked]}' header".black.on_red,
+    )
   end
 end
