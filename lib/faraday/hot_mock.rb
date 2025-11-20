@@ -72,14 +72,16 @@ module Faraday
       mocks.find { |entry| entry["method"].to_s.upcase == method.to_s.upcase && Regexp.new(entry["url_pattern"]).match?(url.to_s) } || false
     end
 
-    def record(method:, url:, into_scenario: nil)
+    def record(method:, headers: {}, url:, body: {}, into_scenario: nil)
       self.scenario = into_scenario if into_scenario.present?
 
       return false if mocked?(method:, url:)
 
-      faraday = Faraday.new
+      faraday = Faraday.new(
+        headers:,
+      )
 
-      response = faraday.send(method.downcase.to_sym, url)
+      response = faraday.send(method.downcase.to_sym, url, body)
 
       FileUtils.mkdir_p(hot_mock_dir)
       FileUtils.touch(hot_mock_file)
@@ -90,7 +92,7 @@ module Faraday
         "method"      => method.to_s.upcase,
         "url_pattern" => url.to_s,
         "status"      => response.status,
-        "headers"     => response.headers.to_h.merge(HEADERS[:recorded] => Time.now.utc.iso8601),
+        "headers"     => response.headers.to_h.merge(HEADERS[:recorded] => Time.now.utc.iso8601, HEADERS[:mocked] => "true"),
         "body"        => response.body
       }
 
@@ -114,7 +116,7 @@ module Faraday
         "method"      => method.to_s.upcase,
         "url_pattern" => url.to_s,
         "status"      => response.status,
-        "headers"     => response.headers.to_h.merge(HEADERS[:recorded] => Time.now.utc.iso8601, "x-hot-mock" => "true"),
+        "headers"     => response.headers.to_h.merge(HEADERS[:recorded] => Time.now.utc.iso8601, HEADERS[:mocked] => "true"),
         "body"        => response.body
       }
 

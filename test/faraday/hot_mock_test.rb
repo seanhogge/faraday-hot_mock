@@ -178,7 +178,7 @@ class Faraday::HotMockTest < ActiveSupport::TestCase
     url = "https://dog.ceo/record_mock"
 
     Faraday::HotMock.delete(method: :get, url: url)
-    Faraday::HotMock.record(method: :get, url: url)
+    Faraday::HotMock.record(method: :get, url: url, headers: { Authorization: "Bearer test_token" })
     assert_requested @recorded_stub
 
     assert Faraday::HotMock.mocked?(method: :get, url: url), "The GET mock for '#{url}' should exist after recording".black.on_red
@@ -195,6 +195,16 @@ class Faraday::HotMockTest < ActiveSupport::TestCase
     assert_equal "application/json", mocked_request.headers["Content-Type"]
     assert mocked_request.headers[Faraday::HotMock::HEADERS[:recorded]], "The response headers should contain '#{Faraday::HotMock::HEADERS[:recorded]}'".black.on_red
     assert mocked_request.body.key?("message"), "The response body should contain a 'message' key".black.on_red
+
+    Faraday::HotMock.record(method: :post, url: url, headers: { Authorization: "Bearer test_token" }, body: { sample: "data" })
+
+    mocked_request = faraday.post(url, { sample: "different data" })
+
+    assert_equal 200, mocked_request.status
+    assert_equal "application/json", mocked_request.headers["Content-Type"]
+    assert mocked_request.headers[Faraday::HotMock::HEADERS[:recorded]], "The response headers should contain '#{Faraday::HotMock::HEADERS[:recorded]}'".black.on_red
+    assert mocked_request.body.key?("message"), "The response body should contain a 'message' key".black.on_red
+
   end
 
   test "record does not duplicate existing mocks" do
