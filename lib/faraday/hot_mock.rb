@@ -166,8 +166,16 @@ module Faraday
       end
     end
 
+    def recording?
+      YAML.load_file(settings_file)["recording"] rescue false
+    end
+
     def scenario
       YAML.load_file(settings_file)["scenario"] rescue nil
+    end
+
+    def scenarios
+      Dir.glob(File.join(scenario_dir, "*")).map { _1.split("/").last }
     end
 
     def scenario=(name)
@@ -175,6 +183,11 @@ module Faraday
 
       settings["scenario"] = name
       File.write(settings_file, settings.to_yaml)
+
+      if name.present?
+        FileUtils.mkdir_p(File.join(scenario_dir, name.to_s))
+        FileUtils.touch(hot_mock_file)
+      end
     end
 
     def settings_file

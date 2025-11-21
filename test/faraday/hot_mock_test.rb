@@ -446,4 +446,19 @@ class Faraday::HotMockTest < ActiveSupport::TestCase
     assert_nil Faraday::HotMock.scenario, "Expected the last set scenario to be returned by the scenario getter".black.on_red
     assert_nil Faraday::HotMock.vcr, "Expected the last set vcr value to be returned by the vcr getter".black.on_red
   end
+
+  test "can list available scenarios" do
+    assert_not_includes Faraday::HotMock.scenarios, "alpha", "SETUP: Expected 'alpha' to not be listed as an available scenario".black.on_yellow
+    assert_not_includes Faraday::HotMock.scenarios, "beta", "SETUP: Expected 'beta' to not be listed as an available scenario".black.on_yellow
+    assert_not_includes Faraday::HotMock.scenarios, "gamma", "SETUP: Expected 'gamma' to not be listed as an available scenario".black.on_yellow
+
+    Faraday::HotMock.scenario = :alpha
+    Faraday::HotMock.scenario = :beta
+    Faraday::HotMock.scenario = :gamma
+    Faraday::HotMock.scenario = nil
+
+    assert_includes Faraday::HotMock.scenarios, "alpha", "Expected 'alpha' to be listed as an available scenario".black.on_red
+    assert_includes Faraday::HotMock.scenarios, "beta", "Expected 'beta' to be listed as an available scenario".black.on_red
+    assert_includes Faraday::HotMock.scenarios, "gamma", "Expected 'gamma' to be listed as an available scenario".black.on_red
+  end
 end
